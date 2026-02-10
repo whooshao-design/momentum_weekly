@@ -1,0 +1,30 @@
+project:
+  seed: 42
+
+data:
+  provider: mock
+  start_date: "2020-01-01"
+  end_date: "2023-12-29"
+  num_stocks: 300
+  fetch_chunk_size: 60
+  raw_dir: "data/raw"
+  prepared_dir: "data/prepared"
+  trading_days_per_year: 252
+
+strategy:
+  pool_name: "HS300_MOCK"
+  rebalance: "weekly"
+  top_n: 30
+  mom_windows: [60, 120]
+  weights: [0.5, 0.5]
+
+backtest:
+  buy_cost: 0.0008
+  sell_cost: 0.0018
+  initial_nav: 1.0
+  result_dir: "outputs/backtest"
+
+report:
+  title: "周调仓中期动量策略回测报告"
+  report_dir: "outputs/report"
+
