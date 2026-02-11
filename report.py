@@ -78,6 +78,7 @@ def build_report_html(cfg: dict, metric_map: dict[str, float], image_rel_path: s
     body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 32px auto; max-width: 1000px; line-height: 1.65; color: #1f2937; padding: 0 18px; }}
     h1, h2 {{ color: #111827; }}
     .card {{ border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 20px; background: #ffffff; }}
+    .actions a {{ display: inline-block; padding: 8px 12px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px; }}
     table {{ border-collapse: collapse; width: 100%; }}
     th, td {{ border-bottom: 1px solid #e5e7eb; padding: 10px 8px; text-align: left; }}
     th {{ width: 180px; color: #374151; font-weight: 600; }}
@@ -87,6 +88,9 @@ def build_report_html(cfg: dict, metric_map: dict[str, float], image_rel_path: s
 </head>
 <body>
   <h1>{title}</h1>
+  <div class="card">
+    <p class="actions"><a href="../../index.html">返回历史首页</a></p>
+  </div>
   <div class="card">
     <h2>策略定义</h2>
     <ul>
