@@ -1,0 +1,126 @@
+name: Publish Report History
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Restore previous published history
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          owner = os.environ["GITHUB_REPOSITORY_OWNER"]
+          repo = os.environ["GITHUB_REPOSITORY"].split("/", 1)[1]
+          if repo == f"{owner}.github.io":
+              base_url = f"https://{owner}.github.io/"
+          else:
+              base_url = f"https://{owner}.github.io/{repo}/"
+
+          site_dir = pathlib.Path("outputs/site")
+          site_dir.mkdir(parents=True, exist_ok=True)
+
+          def fetch(url: str, local_path: pathlib.Path) -> bool:
+              try:
+                  with urllib.request.urlopen(url, timeout=30) as response:
+                      payload = response.read()
+              except Exception:
+                  return False
+              local_path.parent.mkdir(parents=True, exist_ok=True)
+              local_path.write_bytes(payload)
+              return True
+
+          history_path = site_dir / "history.json"
+          history_url = urllib.parse.urljoin(base_url, "history.json")
+          if not fetch(history_url, history_path):
+              print("[pages] no previous history.json found, starting fresh")
+              raise SystemExit(0)
+
+          payload = json.loads(history_path.read_text(encoding="utf-8"))
+          if isinstance(payload, dict):
+              reports = payload.get("reports", [])
+          elif isinstance(payload, list):
+              reports = payload
+          else:
+              reports = []
+          if not isinstance(reports, list):
+              reports = []
+
+          restored_reports = 0
+          restored_assets = 0
+          for item in reports:
+              if not isinstance(item, dict):
+                  continue
+              report_id = str(item.get("id", "")).strip()
+              report_path = str(item.get("path", "")).strip()
+              if not report_id or not report_path:
+                  continue
+
+              index_url = urllib.parse.urljoin(base_url, report_path)
+              index_local_path = site_dir / report_path
+              if fetch(index_url, index_local_path):
+                  restored_reports += 1
+
+              for asset_name in item.get("assets", []):
+                  asset_rel = f"reports/{report_id}/assets/{asset_name}"
+                  asset_url = urllib.parse.urljoin(base_url, asset_rel)
+                  asset_local = site_dir / asset_rel
+                  if fetch(asset_url, asset_local):
+                      restored_assets += 1
+
+          print(
+              f"[pages] restored reports={restored_reports} assets={restored_assets} from {base_url}"
+          )
+          PY
+
+      - name: Run pipeline
+        env:
+          REPORT_ID: run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+        run: |
+          python fetch_data.py
+          python prepare_data.py
+          python signals.py
+          python backtest.py
+          python report.py
+          test -f outputs/site/index.html
+          test -f outputs/site/history.json
+          echo "[pages] site generated at outputs/site/index.html"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: outputs/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

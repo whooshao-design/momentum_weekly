@@ -6,7 +6,7 @@
 2. `prepare_data.py`：整理原始数据为标准回测输入
 3. `signals.py`：计算中期动量信号 `score=0.5*mom60+0.5*mom120`
 4. `backtest.py`：按周调仓，t 日信号、t+1 开盘成交，扣减买卖成本
-5. `report.py`：生成 `outputs/report/report.md` 与净值曲线图
+5. `report.py`：生成 `outputs/report/report.md`、净值曲线图，以及可追溯历史的 `outputs/site/`
 
 ## 目录结构
 
@@ -45,6 +45,22 @@ python backtest.py
 python report.py
 ```
 
+执行完成后可查看：
+
+- `outputs/report/report.md`
+- `outputs/report/nav_curve.png`
+- `outputs/site/index.html`（站点入口，自动跳转最新并展示历史列表）
+- `outputs/site/history.json`（历史索引）
+- `outputs/site/assets/`（最新报告静态资源快照）
+- `outputs/site/reports/<report_id>/index.html`（单次报告）
+- `outputs/site/reports/<report_id>/assets/`（该次报告静态资源）
+
+可通过环境变量指定报告 ID（便于 CI 追溯）：
+
+```bash
+REPORT_ID=local-20260210-1900 python report.py
+```
+
 ## 核心策略定义
 
 - 股票池：沪深300（当前使用 mock 成分占位）
@@ -63,3 +79,20 @@ python report.py
 
 - `signals.py` 仅使用 t 日及以前收盘价计算信号
 - `backtest.py` 强制在 `t+1` 开盘价执行交易收益计算
+
+## GitHub Pages（发布最新并可追溯历史）
+
+仓库已提供工作流：`.github/workflows/pages.yml`。
+
+- 触发：`push` 到 `main`（也支持手动触发）
+- 行为：
+  - 构建前尝试从当前 Pages 站点恢复 `history.json` 与历史报告目录
+  - 运行回测流水线并生成新报告（`REPORT_ID` 使用 GitHub run id）
+  - 更新 `outputs/site/index.html`（自动跳转最新 + 历史列表）
+  - 上传 `outputs/site/` 并部署到 GitHub Pages
+
+在 GitHub 仓库页面设置：
+
+1. 打开 `Settings` -> `Pages`
+2. 在 `Build and deployment` 的 `Source` 选择 `GitHub Actions`
+3. 推送到 `main` 后，等待 `Publish Report History` 工作流完成
