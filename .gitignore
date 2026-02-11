@@ -9,8 +9,6 @@ venv/
 # Data & outputs
 data/
 outputs/*
-!outputs/report/
-!outputs/report/**
 *.parquet
 *.csv
 *.pkl
