@@ -96,3 +96,4 @@ REPORT_ID=local-20260210-1900 python report.py
 1. 打开 `Settings` -> `Pages`
 2. 在 `Build and deployment` 的 `Source` 选择 `GitHub Actions`
 3. 推送到 `main` 后，等待 `Publish Report History` 工作流完成
+
